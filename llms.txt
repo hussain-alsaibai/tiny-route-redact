@@ -1,0 +1,26 @@
+# tiny-route-redact
+
+## What it is
+Middleware that redacts credentials from route paths so logs, error reports, and observability spans never leak them.
+
+## When to use it
+- Any HTTP service that logs request paths.
+- Any service that emits trace spans with the `http.path` attribute.
+- Any service that ships error reports to Sentry / Datadog / Honeycomb with the request path included.
+- Any service that exposes a `/metrics` endpoint that includes the request path.
+
+## When NOT to use it
+- Body redaction - use `tiny-secret-mask` v0.2.0 `mask_json` instead.
+- Trace context redaction - use `tiny-secret-mask` v0.3.0 `mask_trace_context` instead.
+- Log message redaction - use `tiny-log` v0.5.x + `tiny-secret-mask`.
+
+## Public API (one-liner each)
+- `redact_path(path)` - returns the redacted path string.
+- `route_redactor_middleware(get_response, *, stats, on_redact)` - WSGI-style middleware.
+- `route_redactor_asgi_middleware(app, *, stats)` - ASGI-style middleware.
+- `RedactionStats` - counter object for `/metrics` endpoints.
+
+## Dependencies
+- `tiny-secret-mask >= 0.4.0` (auto-installed).
+- Python 3.8+.
+- No other runtime dependencies.
