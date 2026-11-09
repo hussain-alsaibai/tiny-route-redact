@@ -25,6 +25,11 @@ jobs:
         run: pip install git+https://github.com/hussain-alsaibai/tiny-secret-mask.git
       - name: Install package
         run: pip install -e .
+      # pytest is the runner this workflow invokes but it is not a runtime
+      # dependency and was never installed, so every matrix row died with
+      # "No module named pytest" before a single test ran.
+      - name: Install test runner
+        run: pip install pytest
       - name: Assert we imported the dependency we installed
         run: |
           python -c "import tiny_secret_mask as m; print('tiny-secret-mask', getattr(m,'__version__','?'))"
