@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # Install the dependency from source. The PyPI wheel lags the repository,
+      # and 'pip install tiny-secret-mask' succeeding says nothing about what
+      # the following import actually finds.
+      - name: Install dependency from source
+        run: pip install git+https://github.com/hussain-alsaibai/tiny-secret-mask.git
+      - name: Install package
+        run: pip install -e .
+      - name: Assert we imported the dependency we installed
+        run: |
+          python -c "import tiny_secret_mask as m; print('tiny-secret-mask', getattr(m,'__version__','?'))"
+          python -c "from tiny_secret_mask import mask_route_path; print(mask_route_path('/u/550e8400-e29b-41d4-a716-446655440000'))"
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+  fails-closed:
+    # The regression this release exists for: redaction must refuse, not no-op.
+    # With the dependency absent, every redaction entry point must raise.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install without the redaction dependency
+        run: pip install -e . --no-deps
+      - name: Redaction must raise, not pass credentials through
+        run: |
+          python - <<'PY'
+          import sys
+          import tiny_route_redact as t
+
+          if t._MASK is not None:
+              print("dependency unexpectedly importable; cannot test the failure path")
+              sys.exit(1)
+
+          checks = [
+              ("redact_path", lambda: t.redact_path("/u/550e8400-e29b-41d4-a716-446655440000")),
+              ("route_redactor_middleware", lambda: t.route_redactor_middleware(lambda r: r)),
+              ("route_redactor_asgi_middleware", lambda: t.route_redactor_asgi_middleware(lambda s, r, w: None)),
+          ]
+          for name, call in checks:
+              try:
+                  call()
+              except t.RedactionUnavailable:
+                  print(f"ok: {name} raised RedactionUnavailable")
+              else:
+                  print(f"FAIL: {name} did not raise")
+                  sys.exit(1)
+
+          path = "/u/550e8400-e29b-41d4-a716-446655440000"
+          assert t.redact_path_passthrough(path) == path
+          print("ok: passthrough is explicit")
+          PY
