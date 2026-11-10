@@ -20,9 +20,12 @@ A path like that can carry a session UUID and a leaked token by accident. SOUL.m
 
 ## Install
 
+Neither this package nor `tiny-secret-mask` is on PyPI yet, so install both
+from their repositories, in this order:
+
 ```bash
-pip install tiny-route-redact
-# also requires tiny-secret-mask >= 0.4.0 (auto-installed)
+pip install git+https://github.com/hussain-alsaibai/tiny-secret-mask.git
+pip install git+https://github.com/hussain-alsaibai/tiny-route-redact.git
 ```
 
 If that dependency is missing, the library raises `RedactionUnavailable` rather
@@ -105,7 +108,8 @@ Traceback (most recent call last):
     ...
 tiny_route_redact.RedactionUnavailable: tiny_secret_mask>=0.4.0 is required
 for path redaction but could not be imported (mask_route_path is missing).
-Install it with 'pip install tiny-secret-mask>=0.4.0', or call
+Install it with 'pip install git+https://github.com/hussain-alsaibai/
+tiny-secret-mask.git', or call
 redact_path_passthrough() if returning credentials unredacted is what you
 intend.
 ```
